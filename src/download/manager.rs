@@ -354,13 +354,18 @@ async fn download_from_peer(
             // Download this piece with conservative pipelining to keep peers happy
             let mut piece = Piece::new(piece_index, piece_length, piece_hash);
             
-            const PIPELINE_SIZE: usize = 3; // Reduced from 10 - too many requests disconnects peers!
+            // Download this piece with adaptive pipelining
+            let mut piece = Piece::new(piece_index, piece_length, piece_hash);
+            
+            // Adaptive Pipeline: Start small, grow if peer is fast!
+            // Range: 1 (safe) to 50 (max speed)
+            let mut pipeline_size: usize = 3; 
             let mut pending_requests = 0;
             
             // Pipeline requests
             while !piece.is_complete() {
                 // Send requests up to pipeline size - BUT ONLY IF NOT CHOKED
-                while !conn.is_choking() && pending_requests < PIPELINE_SIZE {
+                while !conn.is_choking() && pending_requests < pipeline_size {
                     if let Some((begin, length)) = piece.next_block_to_request() {
                         match conn.request_piece(piece_index as u32, begin as u32, length as u32).await {
                             Ok(_) => pending_requests += 1,
@@ -370,6 +375,9 @@ async fn download_from_peer(
                         break;
                     }
                 }
+                
+                // Measure response time for adaptive scaling
+                let request_start = std::time::Instant::now();
                 
                 // Wait for a response with timeout to detect stalled peers
                 let msg_result = tokio::time::timeout(
@@ -384,14 +392,27 @@ async fn download_from_peer(
                                 if index as usize == piece_index {
                                     if piece.add_block(msg_begin as usize, data) {
                                         pending_requests -= 1;
+                                        
+                                        // ADAPTIVE LOGIC:
+                                        // Fast peer (<500ms)? Increase pipeline!
+                                        // Slow peer (>2s)? Decrease pipeline.
+                                        let duration = request_start.elapsed();
+                                        if duration < std::time::Duration::from_millis(500) {
+                                            if pipeline_size < 50 {
+                                                pipeline_size += 1;
+                                            }
+                                        } else if duration > std::time::Duration::from_secs(2) {
+                                            if pipeline_size > 1 {
+                                                pipeline_size /= 2;
+                                            }
+                                        }
                                     }
                                 }
                             },
                             Message::Choke => {
                                 // Peer choked us - we must wait for unchoke
-                                // We also assume pending requests are dropped by peer
                                 pending_requests = 0; 
-                                // Piece logic will re-request these blocks when unchoked because they weren't added to 'piece' yet
+                                pipeline_size = 1; // Reset to safe mode on choke
                             },
                             Message::Unchoke => {
                                 // We are unchoked! Loop will continue and send requests
