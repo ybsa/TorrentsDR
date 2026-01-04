@@ -9,6 +9,7 @@ pub struct Piece {
     pub hash: [u8; 20],
     blocks: Vec<Option<Vec<u8>>>,
     num_blocks: usize,
+    pub in_progress: bool, // Track if this piece is being downloaded
 }
 
 impl Piece {
@@ -22,6 +23,7 @@ impl Piece {
             hash,
             blocks,
             num_blocks,
+            in_progress: false,
         }
     }
     

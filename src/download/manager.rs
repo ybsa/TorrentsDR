@@ -46,6 +46,8 @@ impl DownloadManager {
     pub async fn download_from_peers(&self, peers: Vec<SocketAddr>) -> Result<()> {
         let (tx, mut rx) = mpsc::channel(500); // Increased buffer
         
+        let active_peers = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        
         // Spawn tasks for MANY peers - 50 simultaneous connections for maximum speed!
         for peer_addr in peers.iter().take(50) {
             let tx = tx.clone();
@@ -53,9 +55,12 @@ impl DownloadManager {
             let pieces = Arc::clone(&self.pieces);
             let peer_id = self.peer_id;
             let peer_addr = *peer_addr;
+            let active_counter = Arc::clone(&active_peers);
             
             tokio::spawn(async move {
+                active_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 let _ = download_from_peer(peer_addr, metainfo, pieces, peer_id, tx).await;
+                active_counter.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
             });
         }
         
@@ -65,6 +70,8 @@ impl DownloadManager {
         let start_time = std::time::Instant::now();
         let mut downloaded_bytes = 0u64;
         let mut last_report = std::time::Instant::now();
+        
+        println!("Connecting to peers...");
         
         // Collect completed pieces
         while let Some((piece_index, data)) = rx.recv().await {
@@ -80,10 +87,11 @@ impl DownloadManager {
                 let elapsed = start_time.elapsed().as_secs_f64();
                 let speed_mbps = (downloaded_bytes as f64 / elapsed) / 1_048_576.0;
                 let progress_pct = (complete as f64 / total as f64) * 100.0;
+                let active = active_peers.load(std::sync::atomic::Ordering::Relaxed);
                 
-                println!("✓ Progress: {}/{} pieces ({:.1}%) | Speed: {:.2} MB/s | Downloaded: {:.2} MB",
+                println!("✓ Progress: {}/{} pieces ({:.1}%) | Speed: {:.2} MB/s | Active Peers: {} | Downloaded: {:.2} MB",
                     complete, total, progress_pct,
-                    speed_mbps, downloaded_bytes as f64 / 1_048_576.0);
+                    speed_mbps, active, downloaded_bytes as f64 / 1_048_576.0);
                 
                 last_report = std::time::Instant::now();
             }
@@ -158,13 +166,34 @@ async fn download_from_peer(
     }
     
     // Download pieces
+    let mut pieces_downloaded = 0usize;
     loop {
-        // Find a piece to download
+        // Find a piece to download - use RANDOM selection so peers don't fight over the same pieces!
         let piece_to_download = {
             let mut pieces_guard = pieces.lock().unwrap();
-            pieces_guard.iter_mut()
-                .find(|p| !p.is_complete() && conn.has_piece(p.index))
-                .map(|p| (p.index, p.length, p.hash))
+            
+            // Collect all available pieces
+            let available: Vec<_> = pieces_guard.iter()
+                .enumerate()
+                .filter(|(idx, p)| !p.is_complete() && !p.in_progress && conn.has_piece(*idx))
+                .map(|(idx, _)| idx)
+                .collect();
+            
+            if available.is_empty() {
+                None
+            } else {
+                // Pick a RANDOM piece to avoid conflicts
+                use std::time::{SystemTime, UNIX_EPOCH};
+                let seed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos() as usize;
+                let random_idx = (seed ^ (piece_index + pieces_downloaded)) % available.len();
+                let piece_idx = available[random_idx];
+                
+                // Mark as in progress
+                pieces_guard[piece_idx].in_progress = true;
+                
+                let p = &pieces_guard[piece_idx];
+                Some((p.index, p.length, p.hash))
+            }
         };
         
         if let Some((piece_index, piece_length, piece_hash)) = piece_to_download {
@@ -206,11 +235,17 @@ async fn download_from_peer(
                     {
                         let mut pieces_guard = pieces.lock().unwrap();
                         pieces_guard[piece_index] = piece.clone();
+                        pieces_guard[piece_index].in_progress = false; // Mark as complete
                     }
                     
                     // Send to storage
+                    pieces_downloaded += 1;
                     let _ = tx.send((piece_index, data)).await;
                 }
+            } else {
+                // Verification failed, mark as not in progress so another peer can try
+                let mut pieces_guard = pieces.lock().unwrap();
+                pieces_guard[piece_index].in_progress = false;
             }
         } else {
             // No more pieces to download from this peer
