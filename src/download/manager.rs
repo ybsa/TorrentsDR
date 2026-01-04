@@ -56,6 +56,7 @@ impl DownloadManager {
         let manager_peer_id = self.peer_id;
         let manager_tx = tx.clone();
         let manager_queue = peers_queue.clone();
+        let manager_total_peers = initial_peers.len(); // Capture total count
         
         tokio::spawn(async move {
             loop {
@@ -75,6 +76,7 @@ impl DownloadManager {
                         let m_tx = manager_tx.clone();
                         let m_queue = manager_queue.clone();
                         let m_peer_id = manager_peer_id;
+                        let m_total_limit = manager_total_peers;
                         
                         tokio::spawn(async move {
                             active_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -85,12 +87,13 @@ impl DownloadManager {
                             active_counter.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
                             
                             // If peer was valid but disconnected, add back to queue
-                            // Adaptive retry: If we are desperate (<10 peers), retry fast!
+                            // Adaptive retry: If we are desperate (<10 active) AND have enough peers (>15 total), retry fast!
+                            // If we have few total peers (e.g. 9), always wait 5s to avoid spamming them.
                             let current_active = active_counter.load(std::sync::atomic::Ordering::Relaxed);
-                            let retry_delay = if current_active < 10 {
-                                std::time::Duration::from_secs(1) // Desperate mode: 1s
+                            let retry_delay = if current_active < 10 && m_total_limit > 15 {
+                                std::time::Duration::from_secs(1) // Desperate mode: 1s (only if large swarm)
                             } else {
-                                std::time::Duration::from_secs(5) // Normal mode: 5s
+                                std::time::Duration::from_secs(5) // Normal mode: 5s (polite)
                             };
                             
                             tokio::time::sleep(retry_delay).await;
