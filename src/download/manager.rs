@@ -136,9 +136,9 @@ async fn download_from_peer(
     peer_id: [u8; 20],
     tx: mpsc::Sender<(usize, Vec<u8>)>,
 ) -> Result<()> {
-    // Add timeout for slow peers
+    // Add timeout for slow peers - increased to 30s to avoid dropping good peers
     let connect_result = tokio::time::timeout(
-        std::time::Duration::from_secs(10),
+        std::time::Duration::from_secs(30),
         PeerConnection::connect(peer_addr, &metainfo.info_hash, &peer_id)
     ).await;
     
@@ -153,9 +153,9 @@ async fn download_from_peer(
     // Send interested
     conn.send_interested().await?;
     
-    // Wait for unchoke with timeout
+    // Wait for unchoke with longer timeout - peers may be slow to respond
     let unchoke_result = tokio::time::timeout(
-        std::time::Duration::from_secs(10),
+        std::time::Duration::from_secs(30),
         async {
             loop {
                 if let Some(msg) = conn.receive_message().await? {
@@ -207,10 +207,10 @@ async fn download_from_peer(
         };
         
         if let Some((piece_index, piece_length, piece_hash)) = piece_to_download {
-            // Download this piece with aggressive pipelining (request many blocks at once)
+            // Download this piece with conservative pipelining to keep peers happy
             let mut piece = Piece::new(piece_index, piece_length, piece_hash);
             
-            const PIPELINE_SIZE: usize = 10; // Request 10 blocks at a time for maximum speed!
+            const PIPELINE_SIZE: usize = 3; // Reduced from 10 - too many requests disconnects peers!
             let mut pending_requests = 0;
             
             // Pipeline requests
