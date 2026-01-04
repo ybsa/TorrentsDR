@@ -12,7 +12,7 @@ class TorrentApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'TorrentX',
+      title: 'Torrent DR',
       debugShowCheckedModeBanner: false,
       theme: darkTheme,
       home: const HomeScreen(),

@@ -8,6 +8,7 @@ pub mod tracker;
 pub mod peer;
 pub mod download;
 pub mod storage;
+pub mod magnet;
 
 // Re-export main types for easy access
 pub use torrent::Metainfo;

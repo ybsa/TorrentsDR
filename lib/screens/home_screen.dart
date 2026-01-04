@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/torrent_card.dart';
 import '../models/torrent_item.dart';
 import 'add_torrent_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -53,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(width: 8),
             const Text(
-              'TorrentX',
+              'Torrent DR',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 22,
@@ -65,7 +66,10 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () {
-              // TODO: Open settings
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
             },
           ),
         ],
@@ -74,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ? _buildEmptyState()
           : ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: _torrents.len(),
+              itemCount: _torrents.length,
               itemBuilder: (context, index) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
