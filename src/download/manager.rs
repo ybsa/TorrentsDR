@@ -49,6 +49,15 @@ impl DownloadManager {
         let active_peers = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let peers_queue = Arc::new(Mutex::new(std::collections::VecDeque::from(initial_peers.clone())));
         
+        // Track known peers to avoid duplicates from re-announces
+        let known_peers = Arc::new(Mutex::new(std::collections::HashSet::new()));
+        {
+            let mut known = known_peers.lock().unwrap();
+            for peer in &initial_peers {
+                known.insert(*peer);
+            }
+        }
+
         // Peer Manager Task - Keeps connections alive
         let manager_active_peers = active_peers.clone();
         let manager_metainfo = self.metainfo.clone();
@@ -56,7 +65,94 @@ impl DownloadManager {
         let manager_peer_id = self.peer_id;
         let manager_tx = tx.clone();
         let manager_queue = peers_queue.clone();
-        let manager_total_peers = initial_peers.len(); // Capture total count
+        let manager_total_peers = Arc::new(std::sync::atomic::AtomicUsize::new(initial_peers.len()));
+        
+        // ----------------------------------------------------------------
+        // 1. TRACKER RE-ANNOUNCE LOOP (Dynamic Discovery)
+        // ----------------------------------------------------------------
+        let tracker_url = self.metainfo.announce_url.clone();
+        let tracker_info_hash = self.metainfo.info_hash;
+        let tracker_peer_id = self.peer_id;
+        let tracker_queue = peers_queue.clone();
+        let tracker_known = known_peers.clone();
+        let tracker_total_peers = manager_total_peers.clone();
+        let tracker_pieces = self.pieces.clone();
+        let tracker_active = active_peers.clone();
+        let total_size = self.metainfo.info.length; // Assuming single file or sum
+        
+        tokio::spawn(async move {
+            use crate::tracker::{announce, TrackerRequest};
+            
+            // Wait 10 seconds before first re-announce (we already have initial peers)
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            
+            loop {
+                let current_active = tracker_active.load(std::sync::atomic::Ordering::Relaxed);
+                
+                // Adaptive Interval: 
+                // - If desperate (< 5 peers): Re-announce every 30 seconds
+                // - If OK (< 20 peers): Re-announce every 2 minutes
+                // - If Good (> 20 peers): Re-announce every 15 minutes
+                let interval = if current_active < 5 {
+                    std::time::Duration::from_secs(30)
+                } else if current_active < 20 {
+                    std::time::Duration::from_secs(120)
+                } else {
+                    std::time::Duration::from_secs(900)
+                };
+                
+                println!("Creating tracker re-announce request... (Active: {})", current_active);
+                tokio::time::sleep(interval).await;
+                
+                // Calculate progress
+                let (downloaded, left) = {
+                     let pieces = tracker_pieces.lock().unwrap();
+                     let completed = pieces.iter().filter(|p| p.is_complete()).count();
+                     let d = (completed * 16384) as u64; // Approximation
+                     let l = if total_size > d { total_size - d } else { 0 };
+                     (d, l)
+                };
+
+                let req = TrackerRequest {
+                    info_hash: tracker_info_hash,
+                    peer_id: tracker_peer_id,
+                    port: 6881,
+                    uploaded: 0, // TODO: track upload
+                    downloaded,
+                    left,
+                };
+                
+                match announce(&tracker_url, &req).await {
+                    Ok(response) => {
+                        let mut known = tracker_known.lock().unwrap();
+                        let mut queue = tracker_queue.lock().unwrap();
+                        let mut new_count = 0;
+                        
+                        for peer in response.peers {
+                            if !known.contains(&peer) {
+                                known.insert(peer);
+                                queue.push_back(peer);
+                                new_count += 1;
+                            }
+                        }
+                        
+                        // Update total count
+                        let old_total = tracker_total_peers.fetch_add(new_count, std::sync::atomic::Ordering::Relaxed);
+                        if new_count > 0 {
+                            println!("Tracker found {} NEW peers! (Total known: {})", new_count, old_total + new_count);
+                        }
+                    },
+                    Err(e) => {
+                        println!("Tracker re-announce failed: {}", e);
+                    }
+                }
+            }
+        });
+
+        // ----------------------------------------------------------------
+        // 2. CONNECTION MANAGER LOOP (Dynamic Scaling)
+        // ----------------------------------------------------------------
+        let mgr_total_peers_limit = manager_total_peers.clone();
         
         tokio::spawn(async move {
             loop {
@@ -76,7 +172,7 @@ impl DownloadManager {
                         let m_tx = manager_tx.clone();
                         let m_queue = manager_queue.clone();
                         let m_peer_id = manager_peer_id;
-                        let m_total_limit = manager_total_peers;
+                        let m_total_peers_atom = manager_total_peers.clone();
                         
                         tokio::spawn(async move {
                             active_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -87,10 +183,11 @@ impl DownloadManager {
                             active_counter.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
                             
                             // If peer was valid but disconnected, add back to queue
-                            // Adaptive retry: If we are desperate (<10 active) AND have enough peers (>15 total), retry fast!
-                            // If we have few total peers (e.g. 9), always wait 5s to avoid spamming them.
+                            // Adaptive retry uses DYNAMIC total peer count
                             let current_active = active_counter.load(std::sync::atomic::Ordering::Relaxed);
-                            let retry_delay = if current_active < 10 && m_total_limit > 15 {
+                            let current_total_known = m_total_peers_atom.load(std::sync::atomic::Ordering::Relaxed);
+                            
+                            let retry_delay = if current_active < 10 && current_total_known > 15 {
                                 std::time::Duration::from_secs(1) // Desperate mode: 1s (only if large swarm)
                             } else {
                                 std::time::Duration::from_secs(5) // Normal mode: 5s (polite)
