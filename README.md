@@ -1,120 +1,82 @@
-# Rust Torrent Client
+# TorrentX - Universal Torrent Downloader
 
-A high-performance BitTorrent client written in Rust with adaptive peer management and smart download optimization.
+A beautiful, cross-platform torrent download app built with Flutter + Rust.
+
+## Platforms
+
+| Platform | Status |
+|----------|--------|
+| Windows | ✅ |
+| Linux | ✅ |
+| Android | ✅ |
+| macOS | ✅ |
+| iOS | 🔜 |
 
 ## Features
 
-- ✅ Bencode encoding/decoding
-- ✅ .torrent file parsing (single and multi-file torrents)
-- ✅ HTTP/HTTPS tracker communication with auto re-announce
-- ✅ Peer wire protocol implementation
-- ✅ **Adaptive Pipelining** - Automatically adjusts request speed based on peer performance
-- ✅ **Dynamic Peer Discovery** - Continuously finds new peers during download
-- ✅ **Keep-Alive Heartbeat** - Maintains stable connections
-- ✅ **Memory Efficient** - Doesn't load entire file into RAM
-- ✅ Multi-peer concurrent downloads (up to 200 peers)
-- ✅ SHA-1 piece verification
-- ✅ Automatic file assembly
-- ✅ Command-line interface
+- 📁 Download from .torrent files
+- 🔗 Download from magnet links
+- 🎨 Beautiful dark purple theme
+- ⚡ Fast Rust core engine
+- 📱 Responsive UI (desktop + mobile)
+- ⏸️ Pause/Resume downloads
+- 📊 Real-time progress & stats
 
-## Quick Start (Windows)
+## Project Structure
 
-### Step 1: Install Build Tools
-
-See [VISUAL_STUDIO_SETUP.md](VISUAL_STUDIO_SETUP.md) for detailed instructions.
-
-### Step 2: Build
-
-Open **Developer Command Prompt for VS 2022** and run:
-
-```powershell
-cd "c:\Users\wind xebec\OneDrive\Desktop\abc"
-cargo build --release
+```
+torrent-app/
+├── lib/              # Flutter/Dart UI code
+│   ├── main.dart
+│   ├── screens/
+│   ├── widgets/
+│   ├── models/
+│   └── theme/
+├── rust/             # Rust core (torrent engine)
+│   ├── src/
+│   └── Cargo.toml
+├── android/          # Android config
+├── windows/          # Windows config
+├── linux/            # Linux config
+└── pubspec.yaml      # Flutter deps
 ```
 
-### Step 3: Download a Torrent
+## Development
 
-```powershell
-.\target\release\torrent-client.exe download "C:\path\to\file.torrent" -o "C:\Downloads"
-```
+### Prerequisites
 
-## Usage
+- [Flutter](https://flutter.dev/docs/get-started/install) 3.0+
+- [Rust](https://rustup.rs/) (for core engine)
+- Android Studio (for Android builds)
+- Visual Studio 2022 with C++ (for Windows builds)
 
-### Download a torrent
+### Run
 
 ```bash
-torrent-client download <torrent-file> [OPTIONS]
+# Install dependencies
+flutter pub get
+
+# Run on current platform
+flutter run
+
+# Run on specific platform
+flutter run -d windows
+flutter run -d android
+flutter run -d linux
 ```
 
-**Options:**
-
-| Option | Short | Description | Default |
-|--------|-------|-------------|---------|
-| `--output` | `-o` | Output directory | `./downloads` |
-| `--port` | `-p` | Listen port | `6881` |
-
-**Examples:**
+### Build
 
 ```bash
-# Download to current directory
-torrent-client download movie.torrent
+# Android APK
+flutter build apk --release
 
-# Download to specific folder
-torrent-client download movie.torrent -o "C:\Users\wind xebec\Downloads"
+# Windows EXE
+flutter build windows --release
 
-# Using cargo (development)
-cargo run --release -- download movie.torrent -o ./downloads
+# Linux
+flutter build linux --release
 ```
-
-### View torrent information
-
-```bash
-torrent-client info <torrent-file>
-```
-
-This displays:
-
-- Torrent name
-- Tracker URL
-- Info hash
-- Total size
-- Piece count and length
-- File list
-
-## Architecture
-
-```
-src/
-├── bencode/     # Bencode parser and encoder
-├── download/    # Download orchestration and piece management
-│   ├── manager.rs  # Peer management, adaptive pipelining
-│   └── piece.rs    # Block tracking, completion marking
-├── peer/        # Peer wire protocol and connection handling
-├── storage/     # File I/O and piece assembly
-├── torrent/     # .torrent file parser and metainfo
-├── tracker/     # HTTP tracker client
-├── lib.rs       # Library exports
-└── main.rs      # CLI entry point
-```
-
-## Performance Features
-
-| Feature | Description |
-|---------|-------------|
-| Adaptive Pipelining | Starts with 3 requests, scales up to 20 for fast peers |
-| Smart Retry | Waits 45s between tracker re-announces to avoid bans |
-| Keep-Alive | Sends heartbeat every 30s to prevent disconnects |
-| Memory Efficient | Uses `mark_complete()` to free RAM after piece verification |
-| Dynamic Discovery | Continuously finds new peers during download |
-
-## Limitations
-
-- No DHT support
-- No magnet link support
-- Download only (no seeding)
-- No peer exchange (PEX)
-- No encryption
-- HTTP/HTTPS trackers only (no UDP)
 
 ## License
 

@@ -1,5 +1,14 @@
 # Build artifacts
 /target/
+rust/target/
+build/
+
+# Flutter
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
 
 # IDE
 .vscode/
@@ -15,6 +24,3 @@ Thumbs.db
 
 # Downloads (test data)
 downloads/
-
-# Cargo.lock is usually committed for binaries, but optional
-# Cargo.lock

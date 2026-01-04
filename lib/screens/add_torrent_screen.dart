@@ -1,0 +1,187 @@
+import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+
+class AddTorrentScreen extends StatefulWidget {
+  const AddTorrentScreen({super.key});
+
+  @override
+  State<AddTorrentScreen> createState() => _AddTorrentScreenState();
+}
+
+class _AddTorrentScreenState extends State<AddTorrentScreen> {
+  final _magnetController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _pickTorrentFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['torrent'],
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final filePath = result.files.first.path;
+        if (filePath != null) {
+          // TODO: Add torrent from file
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Adding: ${result.files.first.name}'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _addMagnetLink() async {
+    final magnet = _magnetController.text.trim();
+    
+    if (magnet.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a magnet link'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (!magnet.startsWith('magnet:?')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid magnet link'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    
+    // TODO: Add magnet link via Rust core
+    await Future.delayed(const Duration(seconds: 1)); // Simulate loading
+    
+    setState(() => _isLoading = false);
+    Navigator.pop(context);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Magnet link added!'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Title
+            Text(
+              'Add Torrent',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 24),
+            
+            // Torrent file button
+            OutlinedButton.icon(
+              onPressed: _pickTorrentFile,
+              icon: const Icon(Icons.folder_open),
+              label: const Text('Choose .torrent file'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Divider with "OR"
+            Row(
+              children: [
+                const Expanded(child: Divider()),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'OR',
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ),
+                const Expanded(child: Divider()),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Magnet link input
+            TextField(
+              controller: _magnetController,
+              decoration: const InputDecoration(
+                hintText: 'Paste magnet link here...',
+                prefixIcon: Icon(Icons.link),
+              ),
+              maxLines: 1,
+            ),
+            const SizedBox(height: 16),
+            
+            // Add magnet button
+            ElevatedButton(
+              onPressed: _isLoading ? null : _addMagnetLink,
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Add Magnet Link'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _magnetController.dispose();
+    super.dispose();
+  }
+}
