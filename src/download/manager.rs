@@ -97,6 +97,14 @@ impl DownloadManager {
             }
         }
         
+        // CRITICAL: Verify all pieces are actually downloaded
+        let (complete, total) = self.progress();
+        if complete < total {
+            println!("\n⚠ WARNING: Download incomplete! Only {}/{} pieces downloaded", complete, total);
+            println!("Some peers may have disconnected. Try downloading again.");
+            anyhow::bail!("Download incomplete: {}/{} pieces", complete, total);
+        }
+        
         // Final summary
         let elapsed = start_time.elapsed().as_secs_f64();
         let avg_speed = (downloaded_bytes as f64 / elapsed) / 1_048_576.0;
@@ -104,6 +112,7 @@ impl DownloadManager {
         println!("Total downloaded: {:.2} MB in {:.1}s", 
             downloaded_bytes as f64 / 1_048_576.0, elapsed);
         println!("Average speed: {:.2} MB/s", avg_speed);
+        println!("All {} pieces verified and saved!", total);
         
         Ok(())
     }

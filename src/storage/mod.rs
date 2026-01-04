@@ -96,6 +96,10 @@ impl Storage {
             storage_file.file.write_all(&data[data_offset..data_offset + write_len])
                 .context("Failed to write to file")?;
             
+            // CRITICAL: Flush to disk immediately to ensure data isn't lost
+            storage_file.file.flush()
+                .context("Failed to flush file")?;
+            
             data_offset += write_len;
             
             if data_offset >= data_len {
