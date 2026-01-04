@@ -44,10 +44,10 @@ impl DownloadManager {
     }
     
     pub async fn download_from_peers(&self, peers: Vec<SocketAddr>) -> Result<()> {
-        let (tx, mut rx) = mpsc::channel(100);
+        let (tx, mut rx) = mpsc::channel(200);
         
-        // Spawn tasks for each peer
-        for peer_addr in peers.iter().take(5) { // Limit to 5 simultaneous peers
+        // Spawn tasks for each peer - increased from 5 to 20 for faster downloads
+        for peer_addr in peers.iter().take(20) {
             let tx = tx.clone();
             let metainfo = Arc::clone(&self.metainfo);
             let pieces = Arc::clone(&self.pieces);
@@ -61,14 +61,41 @@ impl DownloadManager {
         
         drop(tx); // Drop the original sender
         
+        // Track download speed
+        let start_time = std::time::Instant::now();
+        let mut downloaded_bytes = 0u64;
+        let mut last_report = std::time::Instant::now();
+        
         // Collect completed pieces
         while let Some((piece_index, data)) = rx.recv().await {
             let mut storage = self.storage.lock().unwrap();
             storage.write_piece(piece_index, &data)
                 .context("Failed to write piece")?;
             
-            println!("✓ Piece {}/{} complete", piece_index + 1, self.metainfo.num_pieces());
+            downloaded_bytes += data.len() as u64;
+            
+            // Report progress every 2 seconds
+            if last_report.elapsed().as_secs() >= 2 {
+                let (complete, total) = self.progress();
+                let elapsed = start_time.elapsed().as_secs_f64();
+                let speed_mbps = (downloaded_bytes as f64 / elapsed) / 1_048_576.0;
+                let progress_pct = (complete as f64 / total as f64) * 100.0;
+                
+                println!("✓ Progress: {}/{} pieces ({:.1}%) | Speed: {:.2} MB/s | Downloaded: {:.2} MB",
+                    complete, total, progress_pct,
+                    speed_mbps, downloaded_bytes as f64 / 1_048_576.0);
+                
+                last_report = std::time::Instant::now();
+            }
         }
+        
+        // Final summary
+        let elapsed = start_time.elapsed().as_secs_f64();
+        let avg_speed = (downloaded_bytes as f64 / elapsed) / 1_048_576.0;
+        println!("\n✓ Download complete!");
+        println!("Total downloaded: {:.2} MB in {:.1}s", 
+            downloaded_bytes as f64 / 1_048_576.0, elapsed);
+        println!("Average speed: {:.2} MB/s", avg_speed);
         
         Ok(())
     }
@@ -122,24 +149,34 @@ async fn download_from_peer(
         };
         
         if let Some((piece_index, piece_length, piece_hash)) = piece_to_download {
-            // Download this piece
+            // Download this piece with pipelining (request multiple blocks at once)
             let mut piece = Piece::new(piece_index, piece_length, piece_hash);
             
-            while let Some((begin, length)) = piece.next_block_to_request() {
-                conn.request_piece(piece_index as u32, begin as u32, length as u32).await?;
-                
-                // Wait for the piece message
-                loop {
-                    if let Some(msg) = conn.receive_message().await? {
-                        if let Message::Piece { index, begin: msg_begin, data } = msg {
-                            if index as usize == piece_index && msg_begin as usize == begin {
-                                piece.add_block(begin, data);
-                                break;
-                            }
-                        }
+            const PIPELINE_SIZE: usize = 5; // Request 5 blocks at a time for speed
+            let mut pending_requests = 0;
+            
+            // Pipeline requests
+            while !piece.is_complete() {
+                // Send requests up to pipeline size
+                while pending_requests < PIPELINE_SIZE {
+                    if let Some((begin, length)) = piece.next_block_to_request() {
+                        conn.request_piece(piece_index as u32, begin as u32, length as u32).await?;
+                        pending_requests += 1;
                     } else {
-                        return Ok(()); // Connection closed
+                        break;
                     }
+                }
+                
+                // Wait for a response
+                if let Some(msg) = conn.receive_message().await? {
+                    if let Message::Piece { index, begin: msg_begin, data } = msg {
+                        if index as usize == piece_index {
+                            piece.add_block(msg_begin as usize, data);
+                            pending_requests -= 1;
+                        }
+                    }
+                } else {
+                    return Ok(()); // Connection closed
                 }
             }
             
