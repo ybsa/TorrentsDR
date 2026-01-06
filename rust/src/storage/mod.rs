@@ -109,4 +109,53 @@ impl Storage {
         
         Ok(())
     }
+
+    pub fn read_piece(&mut self, piece_index: usize, length: usize) -> Result<Vec<u8>> {
+        let piece_offset = piece_index * self.piece_length;
+        let mut data = vec![0u8; length];
+        let mut data_offset = 0;
+        
+        for storage_file in &mut self.files {
+            // Check if this file overlaps with the piece
+            let file_start = storage_file.offset;
+            let file_end = storage_file.offset + storage_file.length;
+            
+            if piece_offset >= file_end || piece_offset + length <= file_start {
+                continue; // No overlap
+            }
+            
+            // Calculate overlap
+            let read_start = if piece_offset > file_start {
+                piece_offset - file_start
+            } else {
+                0
+            };
+            
+            let read_end = std::cmp::min(
+                read_start + length - data_offset,
+                storage_file.length
+            );
+            
+            let read_len = read_end - read_start;
+            
+            // Read from file
+            storage_file.file.seek(SeekFrom::Start(read_start as u64))
+                .context("Failed to seek in file")?;
+            
+            use std::io::Read;
+            storage_file.file.read_exact(&mut data[data_offset..data_offset + read_len])
+                .context("Failed to read from file")?;
+            
+            data_offset += read_len;
+            
+            if data_offset >= length {
+                break;
+            }
+        }
+        
+        // If we didn't fill the buffer (sparse file?), fill remainder with 0s? 
+        // Actually storage_file.length should map to magnet layout.
+        
+        Ok(data)
+    }
 }

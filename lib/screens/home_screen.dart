@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/torrent/torrent_bloc.dart';
+import '../bloc/torrent/torrent_event.dart';
+import '../bloc/torrent/torrent_state.dart';
 import '../widgets/torrent_card.dart';
-import '../models/torrent_item.dart';
 import 'add_torrent_screen.dart';
 import 'settings_screen.dart';
 
@@ -12,26 +15,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Sample data - will be replaced with real data from Rust core
-  final List<TorrentItem> _torrents = [
-    TorrentItem(
-      name: 'Example.Movie.2024.1080p.mkv',
-      progress: 0.78,
-      downloadSpeed: 2.5 * 1024 * 1024, // 2.5 MB/s
-      peers: 24,
-      totalSize: 2.5 * 1024 * 1024 * 1024, // 2.5 GB
-      status: TorrentStatus.downloading,
-    ),
-    TorrentItem(
-      name: 'Music.Album.FLAC',
-      progress: 0.35,
-      downloadSpeed: 0,
-      peers: 0,
-      totalSize: 500 * 1024 * 1024, // 500 MB
-      status: TorrentStatus.paused,
-    ),
-  ];
-
   void _showAddTorrentDialog() {
     showModalBottomSheet(
       context: context,
@@ -43,71 +26,66 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Icon(
-              Icons.bolt,
-              color: Theme.of(context).colorScheme.primary,
-              size: 28,
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'Torrent DR',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 22,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-      body: _torrents.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _torrents.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: TorrentCard(
-                    torrent: _torrents[index],
-                    onPause: () {
-                      setState(() {
-                        _torrents[index] = _torrents[index].copyWith(
-                          status: _torrents[index].status == TorrentStatus.paused
-                              ? TorrentStatus.downloading
-                              : TorrentStatus.paused,
-                        );
-                      });
-                    },
-                    onDelete: () {
-                      setState(() {
-                        _torrents.removeAt(index);
-                      });
-                    },
+    return BlocBuilder<TorrentBloc, TorrentState>(
+      builder: (context, state) {
+        final torrents = state.torrents;
+        
+        return Scaffold(
+          appBar: AppBar(
+            title: Row(
+              children: [
+                Icon(
+                  Icons.bolt,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 28,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Torrent DR',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
                   ),
-                );
-              },
+                ),
+              ],
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddTorrentDialog,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Torrent'),
-      ),
-      bottomNavigationBar: _buildBottomBar(),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
+          body: torrents.isEmpty
+              ? _buildEmptyState()
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: torrents.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: TorrentCard(
+                        torrent: torrents[index],
+                        onPause: () => context.read<TorrentBloc>().add(PauseTorrent(index)),
+                        onResume: () => context.read<TorrentBloc>().add(ResumeTorrent(index)),
+                        onDelete: () => context.read<TorrentBloc>().add(RemoveTorrent(index)),
+                      ),
+                    );
+                  },
+                ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: _showAddTorrentDialog,
+            icon: const Icon(Icons.add),
+            label: const Text('Add Torrent'),
+          ),
+          bottomNavigationBar: _buildBottomBar(state),
+        );
+      },
     );
   }
 
@@ -116,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.cloud_download_outlined,
             size: 80,
             color: Colors.white24,
@@ -138,14 +116,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBottomBar() {
-    final totalSpeed = _torrents
-        .where((t) => t.status == TorrentStatus.downloading)
+  Widget _buildBottomBar(TorrentState state) {
+    final torrents = state.torrents;
+    final totalSpeed = torrents
+        .where((t) => t.status == TorrentItemStatus.downloading)
         .fold(0.0, (sum, t) => sum + t.downloadSpeed);
-    
-    final activeCount = _torrents
-        .where((t) => t.status == TorrentStatus.downloading)
-        .length;
+
+    final activeCount =
+        torrents.where((t) => t.status == TorrentItemStatus.downloading).length;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -173,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildStatItem(
             icon: Icons.check_circle_outline,
             label: 'Completed',
-            value: _torrents.where((t) => t.progress >= 1.0).length.toString(),
+            value: torrents.where((t) => t.progress >= 1.0).length.toString(),
           ),
         ],
       ),

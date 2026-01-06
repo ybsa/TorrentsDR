@@ -73,7 +73,7 @@ class TorrentItem {
     if (downloadSpeed <= 0 || progress >= 1.0) return '--';
     final remaining = totalSize * (1 - progress);
     final seconds = (remaining / downloadSpeed).round();
-    
+
     if (seconds >= 3600) {
       return '${seconds ~/ 3600}h ${(seconds % 3600) ~/ 60}m';
     } else if (seconds >= 60) {

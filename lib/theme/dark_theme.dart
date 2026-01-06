@@ -3,23 +3,21 @@ import 'package:flutter/material.dart';
 final darkTheme = ThemeData(
   useMaterial3: true,
   brightness: Brightness.dark,
-  
+
   // Color scheme - Purple accent
-  colorScheme: ColorScheme.dark(
-    primary: const Color(0xFF9C27B0),       // Purple
-    secondary: const Color(0xFFE040FB),      // Light purple
-    surface: const Color(0xFF1E1E2E),        // Dark surface
-    background: const Color(0xFF0F0F1A),     // Darker background
-    error: const Color(0xFFCF6679),
+  colorScheme: const ColorScheme.dark(
+    primary: Color(0xFF9C27B0), // Purple
+    secondary: Color(0xFFE040FB), // Light purple
+    surface: Color(0xFF1E1E2E), // Dark surface
+    error: Color(0xFFCF6679),
     onPrimary: Colors.white,
     onSecondary: Colors.white,
     onSurface: Colors.white,
-    onBackground: Colors.white,
   ),
-  
+
   // Scaffold
   scaffoldBackgroundColor: const Color(0xFF0F0F1A),
-  
+
   // App Bar
   appBarTheme: const AppBarTheme(
     backgroundColor: Color(0xFF1E1E2E),
@@ -27,16 +25,16 @@ final darkTheme = ThemeData(
     elevation: 0,
     centerTitle: false,
   ),
-  
+
   // Cards
-  cardTheme: CardTheme(
+  cardTheme: CardThemeData(
     color: const Color(0xFF1E1E2E),
     elevation: 4,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(16),
     ),
   ),
-  
+
   // Buttons
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
@@ -48,13 +46,13 @@ final darkTheme = ThemeData(
       ),
     ),
   ),
-  
+
   // FAB
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
     backgroundColor: Color(0xFF9C27B0),
     foregroundColor: Colors.white,
   ),
-  
+
   // Text
   textTheme: const TextTheme(
     headlineLarge: TextStyle(
@@ -80,7 +78,7 @@ final darkTheme = ThemeData(
       color: Colors.white54,
     ),
   ),
-  
+
   // Input
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
@@ -95,13 +93,13 @@ final darkTheme = ThemeData(
     ),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
   ),
-  
+
   // Divider
   dividerTheme: const DividerThemeData(
     color: Color(0xFF2A2A3E),
     thickness: 1,
   ),
-  
+
   // Progress Indicator
   progressIndicatorTheme: const ProgressIndicatorThemeData(
     color: Color(0xFF9C27B0),

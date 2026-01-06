@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
-import '../models/torrent_item.dart';
+import '../bloc/torrent/torrent_state.dart';
+import '../bloc/torrent/torrent_event.dart';
 
 class TorrentCard extends StatelessWidget {
   final TorrentItem torrent;
   final VoidCallback? onPause;
+  final VoidCallback? onResume;
   final VoidCallback? onDelete;
 
   const TorrentCard({
     super.key,
     required this.torrent,
     this.onPause,
+    this.onResume,
     this.onDelete,
   });
 
@@ -45,12 +48,12 @@ class TorrentCard extends StatelessWidget {
                 // Action buttons
                 IconButton(
                   icon: Icon(
-                    torrent.status == TorrentStatus.paused
+                    torrent.status == TorrentItemStatus.paused
                         ? Icons.play_arrow
                         : Icons.pause,
                     size: 20,
                   ),
-                  onPressed: onPause,
+                  onPressed: torrent.status == TorrentItemStatus.paused ? onResume : onPause,
                   visualDensity: VisualDensity.compact,
                 ),
                 IconButton(
@@ -61,7 +64,7 @@ class TorrentCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            
+
             // Progress bar
             LinearPercentIndicator(
               lineHeight: 8,
@@ -72,7 +75,7 @@ class TorrentCard extends StatelessWidget {
               padding: EdgeInsets.zero,
             ),
             const SizedBox(height: 12),
-            
+
             // Stats row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -85,12 +88,12 @@ class TorrentCard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                
+
                 // Status info
-                if (torrent.status == TorrentStatus.downloading)
+                if (torrent.status == TorrentItemStatus.downloading)
                   Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.download,
                         size: 14,
                         color: Colors.white54,
@@ -101,7 +104,7 @@ class TorrentCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(width: 12),
-                      Icon(
+                      const Icon(
                         Icons.people_outline,
                         size: 14,
                         color: Colors.white54,
@@ -112,7 +115,7 @@ class TorrentCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(width: 12),
-                      Icon(
+                      const Icon(
                         Icons.timer_outlined,
                         size: 14,
                         color: Colors.white54,
@@ -131,10 +134,10 @@ class TorrentCard extends StatelessWidget {
                       color: _getStatusColor(context),
                     ),
                   ),
-                
+
                 // Total size
                 Text(
-                  torrent.formattedTotalSize,
+                  torrent.formattedSize, // Changed from formattedTotalSize
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
@@ -147,60 +150,65 @@ class TorrentCard extends StatelessWidget {
 
   IconData _getStatusIcon() {
     switch (torrent.status) {
-      case TorrentStatus.downloading:
+      case TorrentItemStatus.downloading:
         return Icons.download;
-      case TorrentStatus.paused:
+      case TorrentItemStatus.paused:
         return Icons.pause_circle_outline;
-      case TorrentStatus.completed:
+      case TorrentItemStatus.completed:
         return Icons.check_circle_outline;
-      case TorrentStatus.error:
+      case TorrentItemStatus.error:
         return Icons.error_outline;
-      case TorrentStatus.queued:
+      case TorrentItemStatus.queued:
         return Icons.schedule;
     }
   }
 
   Color _getStatusColor(BuildContext context) {
     switch (torrent.status) {
-      case TorrentStatus.downloading:
+      case TorrentItemStatus.downloading:
         return Theme.of(context).colorScheme.primary;
-      case TorrentStatus.paused:
+      case TorrentItemStatus.paused:
         return Colors.orange;
-      case TorrentStatus.completed:
+      case TorrentItemStatus.completed:
         return Colors.green;
-      case TorrentStatus.error:
+      case TorrentItemStatus.error:
         return Colors.red;
-      case TorrentStatus.queued:
+      case TorrentItemStatus.queued:
         return Colors.white54;
     }
   }
 
   Color _getProgressColor(BuildContext context) {
     switch (torrent.status) {
-      case TorrentStatus.downloading:
+      case TorrentItemStatus.downloading:
         return Theme.of(context).colorScheme.primary;
-      case TorrentStatus.paused:
+      case TorrentItemStatus.paused:
         return Colors.orange;
-      case TorrentStatus.completed:
+      case TorrentItemStatus.completed:
         return Colors.green;
-      case TorrentStatus.error:
+      case TorrentItemStatus.error:
         return Colors.red;
-      case TorrentStatus.queued:
+      case TorrentItemStatus.queued:
         return Colors.white38;
     }
   }
 
   String _getStatusText() {
+    // If downloading but total size is 0, we are fetching metadata
+    if (torrent.status == TorrentItemStatus.downloading && torrent.totalSize == 0) {
+      return 'Fetching Metadata...';
+    }
+
     switch (torrent.status) {
-      case TorrentStatus.downloading:
+      case TorrentItemStatus.downloading:
         return 'Downloading';
-      case TorrentStatus.paused:
+      case TorrentItemStatus.paused:
         return 'Paused';
-      case TorrentStatus.completed:
+      case TorrentItemStatus.completed:
         return 'Completed';
-      case TorrentStatus.error:
+      case TorrentItemStatus.error:
         return torrent.error ?? 'Error';
-      case TorrentStatus.queued:
+      case TorrentItemStatus.queued:
         return 'Queued';
     }
   }
