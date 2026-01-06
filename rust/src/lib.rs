@@ -17,16 +17,22 @@ static SESSION: OnceCell<Arc<Session>> = OnceCell::const_new();
 
 /// Get or initialize the global librqbit session
 pub async fn get_session() -> anyhow::Result<Arc<Session>> {
-    SESSION.get_or_init(|| async {
-        // Session directory for persistence
-        let session_dir = std::env::temp_dir().join("torrent_dr_session");
-        std::fs::create_dir_all(&session_dir).ok();
-        
-        // v8 API: Session::new() returns Result<Arc<Session>>
-        Session::new(session_dir)
-            .await
-            .expect("Failed to create librqbit session")
-    }).await;
+    // Check if already initialized
+    if let Some(session) = SESSION.get() {
+        return Ok(session.clone());
+    }
+    
+    // Initialize the session
+    let session_dir = std::env::temp_dir().join("torrent_dr_session");
+    std::fs::create_dir_all(&session_dir).ok();
+    
+    // v8 API: Session::new() returns Result<Arc<Session>>
+    let session = Session::new(session_dir)
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to create session: {}", e))?;
+    
+    // Try to set it (ignore if already set by another thread)
+    let _ = SESSION.set(session.clone());
     
     Ok(SESSION.get().unwrap().clone())
 }

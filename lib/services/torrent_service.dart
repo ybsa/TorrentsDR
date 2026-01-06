@@ -16,14 +16,16 @@ class TorrentService {
   }
 
   /// Test the Rust bridge connection
-  static String testBridge(String name) {
-    return rust_api.greet(name: name);
+  static Future<void> testBridge() async {
+    // Bridge test - just ensure we can call a Rust function
+    // greet was removed, using parseMagnet as a simple test
+    await rust_api.parseMagnet(uri: 'magnet:?xt=urn:btih:0000000000000000000000000000000000000000');
   }
 
   /// Get information about a torrent file
   /// Returns TorrentInfo with name, size, files, etc.
   static Future<TorrentFileInfo> getTorrentInfo(String filePath) async {
-    final info = await rust_api.getTorrentInfo(path: filePath);
+    final info = await rust_api.getTorrentInfoFile(path: filePath);
     
     // Map Rust struct to Dart struct
     return TorrentFileInfo(
@@ -52,8 +54,8 @@ class TorrentService {
   }
 
   /// Start downloading a torrent
-  static Stream<rust_api.AppTorrentStatus> startDownload(String torrentPath, String outputDir) {
-    return rust_api.startDownload(torrentPath: torrentPath, outputDir: outputDir);
+  static Stream<rust_api.AppTorrentStatus> startDownload(String source, String outputDir) {
+    return rust_api.startDownload(source: source, outputDir: outputDir);
   }
 
   /// Fetch metadata for a magnet link without starting download
@@ -63,19 +65,22 @@ class TorrentService {
   /// Full metadata (file sizes, piece count) requires the full Rust API.
   /// TODO: Once flutter_rust_bridge codegen works, use rust_api.fetchMagnetMetadata()
   static Future<TorrentFileInfo> fetchMagnetMetadata(String magnetUri, {int timeoutSecs = 120}) async {
-    // Fallback: Use basic magnet parsing
-    // This gives us name and hash but not file details
-    final magnetInfo = await rust_api.parseMagnet(uri: magnetUri);
+    final info = await rust_api.fetchMagnetMetadata(
+        magnetUri: magnetUri, 
+        timeoutSecs: timeoutSecs
+    );
     
-    // Return basic info - file list will be empty until full download starts
     return TorrentFileInfo(
-      name: magnetInfo.name ?? 'Unknown Torrent',
-      totalSize: 0, // Unknown from magnet parsing only
-      pieceCount: 0,
-      pieceLength: 0,
-      files: [], // Will be populated after metadata fetched during download
-      infoHash: magnetInfo.infoHash,
-      announce: magnetInfo.trackers.isNotEmpty ? magnetInfo.trackers.first : '',
+      name: info.name,
+      totalSize: info.totalSize.toInt(),
+      pieceCount: info.pieceCount.toInt(),
+      pieceLength: info.pieceLength.toInt(),
+      files: info.files.map((f) => FileItem(
+        path: f.path, 
+        size: f.size.toInt()
+      )).toList(),
+      infoHash: info.infoHash,
+      announce: info.announce,
     );
   }
 }

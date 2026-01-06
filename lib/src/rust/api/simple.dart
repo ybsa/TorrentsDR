@@ -14,19 +14,23 @@ Future<MagnetInfo> parseMagnet({required String uri}) =>
 Future<TorrentInfo> getTorrentInfoFile({required String path}) =>
     RustLib.instance.api.crateApiSimpleGetTorrentInfoFile(path: path);
 
-Stream<AppTorrentStatus> startDownload(
-        {required String source,
-        required String outputDir,
-        Uint64List? selectedFileIndices}) =>
-    RustLib.instance.api.crateApiSimpleStartDownload(
-        source: source,
-        outputDir: outputDir,
-        selectedFileIndices: selectedFileIndices);
+Stream<AppTorrentStatus> startDownload({
+  required String source,
+  required String outputDir,
+  Uint64List? selectedFileIndices,
+}) => RustLib.instance.api.crateApiSimpleStartDownload(
+  source: source,
+  outputDir: outputDir,
+  selectedFileIndices: selectedFileIndices,
+);
 
-Future<TorrentInfo> fetchMagnetMetadata(
-        {required String magnetUri, required int timeoutSecs}) =>
-    RustLib.instance.api.crateApiSimpleFetchMagnetMetadata(
-        magnetUri: magnetUri, timeoutSecs: timeoutSecs);
+Future<TorrentInfo> fetchMagnetMetadata({
+  required String magnetUri,
+  required int timeoutSecs,
+}) => RustLib.instance.api.crateApiSimpleFetchMagnetMetadata(
+  magnetUri: magnetUri,
+  timeoutSecs: timeoutSecs,
+);
 
 class AppTorrentStatus {
   final int totalPieces;
@@ -79,10 +83,7 @@ class FileInfo {
   final String path;
   final BigInt size;
 
-  const FileInfo({
-    required this.path,
-    required this.size,
-  });
+  const FileInfo({required this.path, required this.size});
 
   @override
   int get hashCode => path.hashCode ^ size.hashCode;

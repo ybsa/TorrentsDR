@@ -22,3 +22,6 @@ bytes = "1.5"
 
 [features]
 default = []
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(frb_expand)"] }

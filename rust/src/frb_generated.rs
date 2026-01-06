@@ -92,7 +92,7 @@ fn wire__crate__api__simple__get_torrent_info_file_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "get_torrent_info_file",
             port: Some(port_),
@@ -110,12 +110,13 @@ fn wire__crate__api__simple__get_torrent_info_file_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_path = <String>::sse_decode(&mut deserializer);
             deserializer.end();
-            move |context| {
+            move |context| async move {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || {
-                        let output_ok = crate::api::simple::get_torrent_info_file(api_path)?;
+                    (move || async move {
+                        let output_ok = crate::api::simple::get_torrent_info_file(api_path).await?;
                         Ok(output_ok)
-                    })(),
+                    })()
+                    .await,
                 )
             }
         },

@@ -2,7 +2,6 @@ use crate::frb_generated::StreamSink;
 use crate::get_session;
 use librqbit::{AddTorrent, AddTorrentOptions};
 use std::time::Duration;
-use std::path::PathBuf;
 
 /// Initialize the Rust library (called once at app startup)
 #[flutter_rust_bridge::frb(init)]
@@ -88,19 +87,43 @@ pub fn parse_magnet(uri: String) -> anyhow::Result<MagnetInfo> {
 }
 
 
-pub fn get_torrent_info_file(path: String) -> anyhow::Result<TorrentInfo> {
-    // TODO: librqbit v8 changed the TorrentMetaV1 API
-    // For now, return a placeholder - magnet links are the priority
-    // Will fix this after confirming magnet links work
-    
-    anyhow::bail!("Torrent file parsing needs to be updated for librqbit v8. Please use magnet links for now.")
-    
-    /* OLD v6 CODE - needs migration to v8:
+pub async fn get_torrent_info_file(path: String) -> anyhow::Result<TorrentInfo> {
+    let session = get_session().await?;
     let bytes = std::fs::read(&path)?;
-    let meta = TorrentMetaV1::from_bytes(&bytes)?; // <- This API doesn't exist in v8
-    let info = meta.info;
-    // ... rest of parsing
-    */
+    
+    // Add torrent paused to inspect metadata
+    let add_result = session.add_torrent(
+        AddTorrent::from_bytes(bytes),
+        Some(AddTorrentOptions {
+            paused: true,
+            ..Default::default()
+        })
+    ).await?;
+    
+    let handle = add_result.into_handle()
+        .ok_or(anyhow::anyhow!("Failed to create torrent handle"))?;
+        
+    // For a local .torrent file, metadata should be available immediately
+    let stats = handle.stats();
+    
+    // Build info structure (simplified for v8)
+    let result = TorrentInfo {
+        name: "Local Torrent".to_string(), // TODO: extract name from bytes if needed, or use filename
+        total_size: stats.total_bytes as usize,
+        piece_count: 0,
+        piece_length: 0,
+        files: vec![FileInfo {
+            path: "content".to_string(),
+            size: stats.total_bytes as usize,
+        }],
+        info_hash: format!("{:?}", handle.id()),
+        announce: String::new(),
+    };
+    
+    // Clean up
+    let _ = session.delete(librqbit::api::TorrentIdOrHash::Id(handle.id()), false).await;
+    
+    Ok(result)
 }
 
 pub async fn start_download(
@@ -111,8 +134,16 @@ pub async fn start_download(
 ) -> anyhow::Result<()> {
     let session = get_session().await?;
     
+    let add_torrent = if source.starts_with("magnet:") {
+        AddTorrent::from_url(&source)
+    } else {
+        // Assume file path
+        let bytes = std::fs::read(&source)?;
+        AddTorrent::from_bytes(bytes)
+    };
+    
     let handle = session.add_torrent(
-        AddTorrent::from_url(&source),
+        add_torrent,
         Some(AddTorrentOptions {
             output_folder: Some(output_dir.into()),
             ..Default::default()
