@@ -68,8 +68,8 @@ class VerifyBinaries {
             break;
           }
 
-          if (!verify(precompiledBinaries.publicKey, asset.bodyBytes,
-              signature.bodyBytes)) {
+          if (!Signature(precompiledBinaries.publicKey, asset.bodyBytes,
+              signature.bodyBytes).isValid) {
             stdout.writeln('INVALID SIGNATURE');
             ok = false;
           }
