@@ -4,10 +4,10 @@ import '../services/torrent_service.dart';
 class FileSelectionDialog extends StatefulWidget {
   final List<FileItem> files;
 
-  const FileSelectionDialog({Key? key, required this.files}) : super(key: key);
+  const FileSelectionDialog({super.key, required this.files});
 
   @override
-  _FileSelectionDialogState createState() => _FileSelectionDialogState();
+  State<FileSelectionDialog> createState() => _FileSelectionDialogState();
 }
 
 class _FileSelectionDialogState extends State<FileSelectionDialog> {

@@ -232,6 +232,7 @@ class SettingsScreen extends StatelessWidget {
         }
       }
 
+      if (!context.mounted) return;
       final state = context.read<SettingsCubit>().state;
       final result = await FilePicker.platform.getDirectoryPath(
         dialogTitle: 'Select Download Folder',

@@ -1,7 +1,5 @@
-import 'dart:typed_data';
 import '../src/rust/api/simple.dart' as rust_api;
 import '../src/rust/frb_generated.dart';
-import '../src/rust/lib.dart';
 
 /// Service for interacting with the Rust torrent core.
 /// This wraps the Flutter Rust Bridge generated code.

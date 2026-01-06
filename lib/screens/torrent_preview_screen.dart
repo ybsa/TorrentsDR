@@ -24,7 +24,7 @@ class _TorrentPreviewScreenState extends State<TorrentPreviewScreen>
   TorrentFileInfo? _info;
   bool _isLoading = true;
   String? _error;
-  String _storagePath = '/storage/emulated/0/Download/TorrentsDigger';
+  final String _storagePath = '/storage/emulated/0/Download/TorrentsDigger';
   Set<int> _selectedFiles = {};
 
   @override

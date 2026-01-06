@@ -105,7 +105,6 @@ class TorrentProvider extends ChangeNotifier {
 
       // Try to parse magnet info from Rust core
       String name = 'Unknown Torrent';
-      String? infoHash;
 
       try {
         final info = await TorrentService.parseMagnet(magnetUri);
