@@ -3,7 +3,7 @@
 
 import 'dart:io';
 
-import 'package:ed25519_edwards/ed25519_edwards.dart';
+import 'package:ed25519_edwards/ed25519_edwards.dart' as ed;
 import 'package:http/http.dart';
 
 import 'artifacts_provider.dart';
@@ -68,8 +68,8 @@ class VerifyBinaries {
             break;
           }
 
-          if (!Signature(precompiledBinaries.publicKey, asset.bodyBytes,
-              signature.bodyBytes).isValid) {
+          if (!ed.verify(precompiledBinaries.publicKey, asset.bodyBytes,
+              signature.bodyBytes)) {
             stdout.writeln('INVALID SIGNATURE');
             ok = false;
           }

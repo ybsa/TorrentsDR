@@ -3,8 +3,6 @@ import '../models/torrent_item.dart';
 import '../services/torrent_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io' as io;
-import '../src/rust/api/simple.dart' as rust_api;
-import '../src/rust/lib.dart' as rust_lib;
 
 /// Provider for managing torrent state across the app.
 /// Uses ChangeNotifier for reactive updates.
@@ -112,7 +110,7 @@ class TorrentProvider extends ChangeNotifier {
       try {
         final info = await TorrentService.parseMagnet(magnetUri);
         name = info.name ?? name;
-        infoHash = info.infoHash;
+        // infoHash available: info.infoHash
       } catch (e) {
         debugPrint('TorrentService.parseMagnet not available: $e');
         // Fallback validation
