@@ -138,9 +138,10 @@ class _AddTorrentScreenState extends State<AddTorrentScreen> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Handle bar
             Center(
@@ -219,6 +220,7 @@ class _AddTorrentScreenState extends State<AddTorrentScreen> {
             ),
             const SizedBox(height: 8),
           ],
+          ),
         ),
       ),
     );
