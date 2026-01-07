@@ -24,6 +24,8 @@ pub async fn get_session() -> anyhow::Result<Arc<Session>> {
     
     // Initialize the session
     let session_dir = std::env::temp_dir().join("torrent_dr_session");
+    // Clear stale session data to prevent "File exists" errors
+    let _ = std::fs::remove_dir_all(&session_dir);
     std::fs::create_dir_all(&session_dir).ok();
     
     // v8 API: Session::new() returns Result<Arc<Session>>

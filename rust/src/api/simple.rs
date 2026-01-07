@@ -96,6 +96,7 @@ pub async fn get_torrent_info_file(path: String) -> anyhow::Result<TorrentInfo> 
         AddTorrent::from_bytes(bytes),
         Some(AddTorrentOptions {
             paused: true,
+            overwrite: true,
             ..Default::default()
         })
     ).await?;
@@ -146,6 +147,7 @@ pub async fn start_download(
         add_torrent,
         Some(AddTorrentOptions {
             output_folder: Some(output_dir.into()),
+            overwrite: true,
             ..Default::default()
         })
     ).await?.into_handle().ok_or(anyhow::anyhow!("Failed to create torrent handle"))?;
@@ -234,6 +236,7 @@ pub async fn fetch_magnet_metadata(
         AddTorrent::from_url(&magnet_uri),
         Some(AddTorrentOptions {
             paused: true, // Don't start downloading
+            overwrite: true,
             ..Default::default()
         })
     ).await?;
