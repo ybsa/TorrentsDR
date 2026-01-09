@@ -24,3 +24,9 @@ Thumbs.db
 
 # Downloads (test data)
 downloads/
+
+# Logs and temporary files
+*.log
+build_log*.txt
+build_fail_log*.txt
+*.bat
