@@ -105,7 +105,7 @@ class SettingsScreen extends StatelessWidget {
                 context: context,
                 icon: Icons.info_outline,
                 title: 'Torrent DR',
-                subtitle: 'Version 1.0.0\nBuilt with Flutter + Rust\nEVLF ER',
+                subtitle: 'Version 1.0.0\nBuilt with Flutter + Rust\n— EVLF ERIS LAB —',
               ),
               const SizedBox(height: 16),
               _buildSettingCard(

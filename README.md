@@ -1,83 +1,93 @@
-# TorrentX - Universal Torrent Downloader
+# TorrentsDR - Universal Torrent Downloader
 
-A beautiful, cross-platform torrent download app built with Flutter + Rust.
+A beautiful, high-performance, cross-platform torrent download application built with **Flutter** and **Rust**.
 
-## Platforms
+![TorrentsDR Banner](https://via.placeholder.com/1200x600.png?text=TorrentsDR+Preview)
 
-| Platform | Status |
-|----------|--------|
-| Windows | ✅ |
-| Linux | ✅ |
-| Android | ✅ |
-| macOS | ✅ |
-| iOS | 🔜 |
+## 🚀 Key Features
 
-## Features
+*   **Unified Backend**: Powered by [librqbit](https://github.com/ikatson/rqbit), a fast and reliable BitTorrent library written in Rust.
+*   **Cross-Platform**: Runs smoothly on **Windows**, **Android**, and **Linux**.
+*   **Modern UI**: Sleek, dark-themed responsive interface designed with Flutter.
+*   **Magnet Link Support**: Seamlessly handle magnet links with automatic metadata fetching.
+*   **Torrent Files**: Open and download from `.torrent` files.
+*   **Real-time Stats**: View download/upload speeds, seeds/peers, and progress in real-time.
+*   **File Management**: Preview files within a torrent before downloading.
+*   **Background Service**: Continued downloading capability (platform dependent).
 
-- 📁 Download from .torrent files
-- 🔗 Download from magnet links
-- 🎨 Beautiful dark purple theme
-- ⚡ Fast Rust core engine
-- 📱 Responsive UI (desktop + mobile)
-- ⏸️ Pause/Resume downloads
-- 📊 Real-time progress & stats
+## 🛠️ Architecture
 
-## Project Structure
+This project uses `flutter_rust_bridge` to connect the performant Rust backend with the flexible Flutter frontend.
 
-```
-torrent-app/
-├── lib/              # Flutter/Dart UI code
-│   ├── main.dart
-│   ├── screens/
-│   ├── widgets/
-│   ├── models/
-│   └── theme/
-├── rust/             # Rust core (torrent engine)
-│   ├── src/
-│   └── Cargo.toml
-├── android/          # Android config
-├── windows/          # Windows config
-├── linux/            # Linux config
-└── pubspec.yaml      # Flutter deps
-```
+*   **Frontend**: Flutter (Dart) - Handles UI, state management (Bloc), and platform integrations.
+*   **Backend**: Rust - Handles all BitTorrent networking, file I/O, and session management via `librqbit`.
 
-## Development
+## 📦 platforms
+
+| Platform | Status | Support |
+|----------|--------|---------|
+| **Windows** | ✅ Stable | Fully Supported |
+| **Android** | ✅ Stable | Fully Supported (arm64, v7a) |
+| **Linux** | ✅ Stable | Fully Supported |
+| **macOS** | 🚧 Beta | Experimental |
+| **iOS** | 🔜 Planned | Coming Soon |
+
+## 💻 Development Setup
 
 ### Prerequisites
 
-- [Flutter](https://flutter.dev/docs/get-started/install) 3.0+
-- [Rust](https://rustup.rs/) (for core engine)
-- Android Studio (for Android builds)
-- Visual Studio 2022 with C++ (for Windows builds)
+*   [Flutter SDK](https://flutter.dev/docs/get-started/install) (3.0+)
+*   [Rust Toolchain](https://rustup.rs/) (Stable)
+*   [LLVM/Clang](https://releases.llvm.org/download.html) (Required for `flutter_rust_bridge` codegen)
+*   **Windows**: Visual Studio 2022 with C++ Desktop Development workload.
+*   **Android**: Android Studio & NDK.
 
-### Run
+### Installation & Running
 
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/YourUsername/TorrentsDR.git
+    cd TorrentsDR
+    ```
+
+2.  **Install Flutter dependencies:**
+    ```bash
+    flutter pub get
+    ```
+
+3.  **Run Code Generator (Important):**
+    This generates the dart-rust bridge code.
+    ```bash
+    flutter_rust_bridge_codegen generate
+    ```
+
+4.  **Run the App:**
+    ```bash
+    # Run on Windows
+    flutter run -d windows
+
+    # Run on Android
+    flutter run -d android
+    ```
+
+## 🏗️ Building for Release
+
+### Windows
 ```bash
-# Install dependencies
-flutter pub get
-
-# Run on current platform
-flutter run
-
-# Run on specific platform
-flutter run -d windows
-flutter run -d android
-flutter run -d linux
-```
-
-### Build
-
-```bash
-# Android APK
-flutter build apk --release
-
-# Windows EXE
 flutter build windows --release
-
-# Linux
-flutter build linux --release
 ```
+The executable will be in `build/windows/runner/Release/`.
 
-## License
+### Android
+```bash
+flutter build apk --release
+```
+The APK will be in `build/app/outputs/flutter-apk/`.
 
-MIT
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

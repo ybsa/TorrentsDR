@@ -115,7 +115,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                   // Company
                   Text(
-                    'by EVLF ER',
+                    '— EVLF ERIS LAB —',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.white54,
                         ),

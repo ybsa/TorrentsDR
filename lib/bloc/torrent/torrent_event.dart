@@ -12,22 +12,24 @@ abstract class TorrentEvent extends Equatable {
 class AddTorrentFile extends TorrentEvent {
   final String filePath;
   final List<int>? selectedFileIndices;
+  final String? savePath;
   
-  const AddTorrentFile(this.filePath, [this.selectedFileIndices]);
+  const AddTorrentFile(this.filePath, [this.selectedFileIndices, this.savePath]);
   
   @override
-  List<Object?> get props => [filePath, selectedFileIndices];
+  List<Object?> get props => [filePath, selectedFileIndices, savePath];
 }
 
 /// Add a torrent from a magnet link
 class AddMagnetLink extends TorrentEvent {
   final String magnetUri;
   final List<int>? selectedFileIndices;
+  final String? savePath;
   
-  const AddMagnetLink(this.magnetUri, [this.selectedFileIndices]);
+  const AddMagnetLink(this.magnetUri, [this.selectedFileIndices, this.savePath]);
   
   @override
-  List<Object?> get props => [magnetUri, selectedFileIndices];
+  List<Object?> get props => [magnetUri, selectedFileIndices, savePath];
 }
 
 /// Update torrent progress
@@ -37,6 +39,7 @@ class UpdateTorrentProgress extends TorrentEvent {
   final double downloadSpeed;
   final int peers;
   final TorrentItemStatus status;
+  final int? totalSize;  // Total download size in bytes
   
   const UpdateTorrentProgress({
     required this.index,
@@ -44,10 +47,11 @@ class UpdateTorrentProgress extends TorrentEvent {
     required this.downloadSpeed,
     required this.peers,
     required this.status,
+    this.totalSize,
   });
   
   @override
-  List<Object?> get props => [index, progress, downloadSpeed, peers, status];
+  List<Object?> get props => [index, progress, downloadSpeed, peers, status, totalSize];
 }
 
 /// Pause a torrent
@@ -94,6 +98,11 @@ class TorrentError extends TorrentEvent {
   
   @override
   List<Object?> get props => [index, error];
+}
+
+/// Load restored torrents from storage
+class LoadRestoredTorrents extends TorrentEvent {
+  const LoadRestoredTorrents();
 }
 
 /// Enum for torrent status (defined here to avoid circular imports)

@@ -23,8 +23,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustStreamSink<AppTorrentStatus> dco_decode_StreamSink_app_torrent_status_Sse(
-    dynamic raw,
-  );
+      dynamic raw);
 
   @protected
   String dco_decode_String(dynamic raw);
@@ -43,6 +42,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
+  List<AppTorrentStatus> dco_decode_list_app_torrent_status(dynamic raw);
 
   @protected
   List<FileInfo> dco_decode_list_file_info(dynamic raw);
@@ -69,6 +71,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_u_32(dynamic raw);
 
   @protected
+  BigInt dco_decode_u_64(dynamic raw);
+
+  @protected
   int dco_decode_u_8(dynamic raw);
 
   @protected
@@ -82,8 +87,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustStreamSink<AppTorrentStatus> sse_decode_StreamSink_app_torrent_status_Sse(
-    SseDeserializer deserializer,
-  );
+      SseDeserializer deserializer);
 
   @protected
   String sse_decode_String(SseDeserializer deserializer);
@@ -104,6 +108,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
+  List<AppTorrentStatus> sse_decode_list_app_torrent_status(
+      SseDeserializer deserializer);
+
+  @protected
   List<FileInfo> sse_decode_list_file_info(SseDeserializer deserializer);
 
   @protected
@@ -120,14 +128,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint64List? sse_decode_opt_list_prim_usize_strict(
-    SseDeserializer deserializer,
-  );
+      SseDeserializer deserializer);
 
   @protected
   TorrentInfo sse_decode_torrent_info(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_32(SseDeserializer deserializer);
+
+  @protected
+  BigInt sse_decode_u_64(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -143,24 +153,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_AnyhowException(
-    AnyhowException self,
-    SseSerializer serializer,
-  );
+      AnyhowException self, SseSerializer serializer);
 
   @protected
   void sse_encode_StreamSink_app_torrent_status_Sse(
-    RustStreamSink<AppTorrentStatus> self,
-    SseSerializer serializer,
-  );
+      RustStreamSink<AppTorrentStatus> self, SseSerializer serializer);
 
   @protected
   void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
   void sse_encode_app_torrent_status(
-    AppTorrentStatus self,
-    SseSerializer serializer,
-  );
+      AppTorrentStatus self, SseSerializer serializer);
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
@@ -175,19 +179,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_app_torrent_status(
+      List<AppTorrentStatus> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_file_info(List<FileInfo> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_prim_u_8_strict(
-    Uint8List self,
-    SseSerializer serializer,
-  );
+      Uint8List self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_prim_usize_strict(
-    Uint64List self,
-    SseSerializer serializer,
-  );
+      Uint64List self, SseSerializer serializer);
 
   @protected
   void sse_encode_magnet_info(MagnetInfo self, SseSerializer serializer);
@@ -197,15 +201,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_list_prim_usize_strict(
-    Uint64List? self,
-    SseSerializer serializer,
-  );
+      Uint64List? self, SseSerializer serializer);
 
   @protected
   void sse_encode_torrent_info(TorrentInfo self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_64(BigInt self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);
@@ -228,9 +233,9 @@ class RustLibWire implements BaseWire {
 
   /// Holds the symbol lookup function.
   final ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName)
-  _lookup;
+      _lookup;
 
   /// The symbols are looked up in [dynamicLibrary].
   RustLibWire(ffi.DynamicLibrary dynamicLibrary)
-    : _lookup = dynamicLibrary.lookup;
+      : _lookup = dynamicLibrary.lookup;
 }

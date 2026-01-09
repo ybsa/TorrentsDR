@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import '../services/torrent_service.dart';
 
-/// Flud-style torrent preview screen with INFORMATION and FILES tabs
 class TorrentPreviewScreen extends StatefulWidget {
-  final String source; // Magnet URI or file path
+  final String source;
   final bool isMagnet;
-  final TorrentFileInfo? preloadedInfo; // For .torrent files (already parsed)
+  final TorrentFileInfo? preloadedInfo;
 
   const TorrentPreviewScreen({
     super.key,
@@ -24,14 +25,17 @@ class _TorrentPreviewScreenState extends State<TorrentPreviewScreen>
   TorrentFileInfo? _info;
   bool _isLoading = true;
   String? _error;
-  final String _storagePath = '/storage/emulated/0/Download/TorrentsDigger';
+  String _storagePath = ''; // Initialize empty
   Set<int> _selectedFiles = {};
+  bool _sequentialDownload = false;
+  bool _firstLastPieces = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
+    _initStoragePath(); // Get valid path
+
     if (widget.preloadedInfo != null) {
       // Already have info from .torrent file
       _info = widget.preloadedInfo;
@@ -40,6 +44,24 @@ class _TorrentPreviewScreenState extends State<TorrentPreviewScreen>
     } else if (widget.isMagnet) {
       // Need to fetch metadata for magnet
       _fetchMagnetMetadata();
+    }
+  }
+
+  Future<void> _initStoragePath() async {
+    try {
+      if (Platform.isAndroid) {
+         _storagePath = '/storage/emulated/0/Download/TorrentsDigger';
+      } else {
+        final directory = await getDownloadsDirectory();
+        _storagePath = directory?.path ?? '';
+        // Create subdirectory if needed
+        if (_storagePath.isNotEmpty) {
+           _storagePath = '$_storagePath${Platform.pathSeparator}TorrentsDigger';
+        }
+      }
+      if (mounted) setState(() {});
+    } catch (e) {
+      // Fallback or log
     }
   }
 
@@ -80,8 +102,11 @@ class _TorrentPreviewScreenState extends State<TorrentPreviewScreen>
   }
 
   void _startDownload() {
-    // Return selected file indices to the caller
-    Navigator.pop(context, _selectedFiles.toList());
+    // debugPrint('Start Download clicked. Path: $_storagePath, Indices: ${_selectedFiles.length}');
+    Navigator.pop(context, {
+      'indices': _selectedFiles.toList(),
+      'path': _storagePath,
+    });
   }
 
   @override
@@ -100,10 +125,6 @@ class _TorrentPreviewScreenState extends State<TorrentPreviewScreen>
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _info != null ? _startDownload : null,
-          ),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -115,6 +136,13 @@ class _TorrentPreviewScreenState extends State<TorrentPreviewScreen>
           labelColor: theme.colorScheme.primary,
         ),
       ),
+      floatingActionButton: _info != null 
+          ? FloatingActionButton.extended(
+              onPressed: _startDownload,
+              icon: const Icon(Icons.download),
+              label: const Text('Start Download'),
+            )
+          : null,
       body: _isLoading
           ? _buildLoadingState()
           : _error != null
@@ -129,18 +157,19 @@ class _TorrentPreviewScreenState extends State<TorrentPreviewScreen>
     );
   }
 
+
   Widget _buildLoadingState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const CircularProgressIndicator(),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           Text(
             'Fetching Metadata...',
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'Connecting to peers to get torrent info',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -160,12 +189,12 @@ class _TorrentPreviewScreenState extends State<TorrentPreviewScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
               'Failed to fetch metadata',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               _error ?? 'Unknown error',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -173,7 +202,7 @@ class _TorrentPreviewScreenState extends State<TorrentPreviewScreen>
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: _fetchMagnetMetadata,
               icon: const Icon(Icons.refresh),
@@ -231,15 +260,23 @@ class _TorrentPreviewScreenState extends State<TorrentPreviewScreen>
           ),
           CheckboxListTile(
             title: const Text('Enable sequential download'),
-            value: false,
-            onChanged: (v) {},
+            value: _sequentialDownload,
+            onChanged: (v) {
+              setState(() {
+                _sequentialDownload = v ?? false;
+              });
+            },
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
           ),
           CheckboxListTile(
             title: const Text('Download first and last pieces first'),
-            value: false,
-            onChanged: (v) {},
+            value: _firstLastPieces,
+            onChanged: (v) {
+              setState(() {
+                _firstLastPieces = v ?? false;
+              });
+            },
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
           ),

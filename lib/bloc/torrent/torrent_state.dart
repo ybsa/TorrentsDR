@@ -133,7 +133,6 @@ class TorrentItem extends Equatable {
     return '${(seconds / 3600).toInt()}h ${((seconds % 3600) / 60).toInt()}m';
   }
 
-  @override
   List<Object?> get props => [
     name,
     progress,
@@ -144,4 +143,29 @@ class TorrentItem extends Equatable {
     error,
     source,
   ];
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'progress': progress,
+      'totalSize': totalSize,
+      'status': status.name,
+      'error': error,
+      'source': source,
+    };
+  }
+
+  factory TorrentItem.fromMap(Map<String, dynamic> map) {
+    return TorrentItem(
+      name: map['name'] ?? 'Unknown',
+      progress: map['progress']?.toDouble() ?? 0.0,
+      totalSize: map['totalSize']?.toInt() ?? 0,
+      status: TorrentItemStatus.values.firstWhere(
+        (e) => e.name == map['status'],
+        orElse: () => TorrentItemStatus.queued,
+      ),
+      error: map['error'],
+      source: map['source'],
+    );
+  }
 }

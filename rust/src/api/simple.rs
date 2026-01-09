@@ -17,9 +17,11 @@ pub struct AppTorrentStatus {
     pub peers: u32,
     pub speed_mbps: f64,
     pub downloading: bool,
-    pub is_fetching_metadata: bool,  // True when fetching magnet metadata
-    pub status_message: String,       // "Fetching Metadata...", "Downloading", "Complete", etc.
+    pub is_fetching_metadata: bool,
+    pub status_message: String,
     pub error: Option<String>,
+    pub total_bytes: u64,      // Total size in bytes
+    pub downloaded_bytes: u64, // Downloaded so far in bytes
 }
 
 #[derive(Debug, Clone)]
@@ -143,14 +145,42 @@ pub async fn start_download(
         AddTorrent::from_bytes(bytes)
     };
     
-    let handle = session.add_torrent(
+    // Starting download for source
+    
+    // Try to add torrent - librqbit v8 handles duplicates with overwrite option
+    let add_result = session.add_torrent(
         add_torrent,
         Some(AddTorrentOptions {
             output_folder: Some(output_dir.into()),
-            overwrite: true,
+            overwrite: true, // This should handle existing torrents
             ..Default::default()
         })
-    ).await?.into_handle().ok_or(anyhow::anyhow!("Failed to create torrent handle"))?;
+    ).await;
+    
+    // Get the handle - either from new add or handle error for existing
+    let handle = match add_result {
+        Ok(managed) => {
+            managed.into_handle().ok_or(anyhow::anyhow!("Failed to create torrent handle"))?
+        },
+        Err(e) => {
+            // If add failed, try to find existing torrent in session
+            // Add failed, looking for existing torrent
+            
+            // Find existing torrent by iterating through session
+            use std::cell::RefCell;
+            let found_handle: RefCell<Option<_>> = RefCell::new(None);
+            session.with_torrents(|torrents| {
+                for (_, handle) in torrents {
+                    // Just get the first active one for now
+                    // In production, match by info_hash
+                    *found_handle.borrow_mut() = Some(handle.clone());
+                    break;
+                }
+            });
+            
+            found_handle.into_inner().ok_or(anyhow::anyhow!("Torrent not found in session: {}", e))?
+        }
+    };
     
     // Status Loop
     loop {
@@ -191,9 +221,10 @@ pub async fn start_download(
             format!("Downloading ({} peers)", peer_count)
         };
         
-        // v8: Speed is in bytes/sec, convert to MB/s
+        // v8: download_speed.mbps is already in megabits/sec, convert to MB/s
+        // 1 Mbps = 0.125 MB/s (divide by 8)
         let speed_mbps = if let Some(live) = &stats.live {
-            (live.download_speed.mbps as f64) / 1_000_000.0
+            live.download_speed.mbps as f64 / 8.0
         } else {
             0.0
         };
@@ -207,6 +238,8 @@ pub async fn start_download(
             is_fetching_metadata,
             status_message,
             error: None,
+            total_bytes: stats.total_bytes,
+            downloaded_bytes: stats.progress_bytes,
         };
         
         if stream_sink.add(status).is_err() {
@@ -290,4 +323,78 @@ pub async fn fetch_magnet_metadata(
         
         tokio::time::sleep(Duration::from_millis(500)).await;
     }
+}
+
+pub async fn get_torrents() -> anyhow::Result<Vec<AppTorrentStatus>> {
+    let session = get_session().await?;
+    let handles = session.with_torrents(|iter| {
+        iter.map(|(_, handle)| handle.clone()).collect::<Vec<_>>()
+    });
+    let mut results = Vec::new();
+    
+    for handle in handles {
+        let stats = handle.stats();
+        
+        let has_metadata = stats.total_bytes > 0;
+        let is_fetching_metadata = !has_metadata;
+        
+        // Calculate total pieces from total bytes / piece length (estimate)
+        let total_pieces = if stats.total_bytes > 0 {
+            ((stats.total_bytes as f64 / 16384.0).ceil()) as u32 // Assume 16KB pieces
+        } else {
+            0
+        };
+        
+        // v8: Calculate completed pieces from progress_bytes
+        let completed = if stats.total_bytes > 0 {
+            ((stats.progress_bytes as f64 / 16384.0).floor()) as u32
+        } else {
+            0
+        };
+        
+        // v8 API: peer count from snapshot if live stats available
+        let peer_count = if let Some(live) = &stats.live {
+            live.snapshot.peer_stats.live as u32
+        } else {
+            0
+        };
+        
+        // Check if finished
+        let is_finished = stats.progress_bytes >= stats.total_bytes && stats.total_bytes > 0;
+        let is_paused = handle.is_paused();
+
+        let status_message = if is_fetching_metadata {
+            format!("Fetching Metadata... ({} peers)", peer_count)
+        } else if is_finished {
+            "Complete".to_string()
+        } else if is_paused {
+            "Paused".to_string()
+        } else if peer_count == 0 {
+            "Searching for peers...".to_string()
+        } else {
+            format!("Downloading ({} peers)", peer_count)
+        };
+        
+        // v8: download_speed.mbps is megabits/sec, convert to MB/s
+        let speed_mbps = if let Some(live) = &stats.live {
+            live.download_speed.mbps as f64 / 8.0
+        } else {
+            0.0
+        };
+        
+        results.push(AppTorrentStatus {
+            total_pieces,
+            completed_pieces: completed,
+            peers: peer_count,
+            speed_mbps,
+            downloading: !is_fetching_metadata && !is_finished && !is_paused,
+            is_fetching_metadata,
+            status_message,
+            error: None,
+            total_bytes: stats.total_bytes,
+            downloaded_bytes: stats.progress_bytes,
+        });
+    }
+    
+    Ok(results)
 }

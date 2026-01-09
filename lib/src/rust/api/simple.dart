@@ -14,23 +14,22 @@ Future<MagnetInfo> parseMagnet({required String uri}) =>
 Future<TorrentInfo> getTorrentInfoFile({required String path}) =>
     RustLib.instance.api.crateApiSimpleGetTorrentInfoFile(path: path);
 
-Stream<AppTorrentStatus> startDownload({
-  required String source,
-  required String outputDir,
-  Uint64List? selectedFileIndices,
-}) => RustLib.instance.api.crateApiSimpleStartDownload(
-  source: source,
-  outputDir: outputDir,
-  selectedFileIndices: selectedFileIndices,
-);
+Stream<AppTorrentStatus> startDownload(
+        {required String source,
+        required String outputDir,
+        Uint64List? selectedFileIndices}) =>
+    RustLib.instance.api.crateApiSimpleStartDownload(
+        source: source,
+        outputDir: outputDir,
+        selectedFileIndices: selectedFileIndices);
 
-Future<TorrentInfo> fetchMagnetMetadata({
-  required String magnetUri,
-  required int timeoutSecs,
-}) => RustLib.instance.api.crateApiSimpleFetchMagnetMetadata(
-  magnetUri: magnetUri,
-  timeoutSecs: timeoutSecs,
-);
+Future<TorrentInfo> fetchMagnetMetadata(
+        {required String magnetUri, required int timeoutSecs}) =>
+    RustLib.instance.api.crateApiSimpleFetchMagnetMetadata(
+        magnetUri: magnetUri, timeoutSecs: timeoutSecs);
+
+Future<List<AppTorrentStatus>> getTorrents() =>
+    RustLib.instance.api.crateApiSimpleGetTorrents();
 
 class AppTorrentStatus {
   final int totalPieces;
@@ -41,6 +40,8 @@ class AppTorrentStatus {
   final bool isFetchingMetadata;
   final String statusMessage;
   final String? error;
+  final BigInt totalBytes;
+  final BigInt downloadedBytes;
 
   const AppTorrentStatus({
     required this.totalPieces,
@@ -51,6 +52,8 @@ class AppTorrentStatus {
     required this.isFetchingMetadata,
     required this.statusMessage,
     this.error,
+    required this.totalBytes,
+    required this.downloadedBytes,
   });
 
   @override
@@ -62,7 +65,9 @@ class AppTorrentStatus {
       downloading.hashCode ^
       isFetchingMetadata.hashCode ^
       statusMessage.hashCode ^
-      error.hashCode;
+      error.hashCode ^
+      totalBytes.hashCode ^
+      downloadedBytes.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -76,14 +81,19 @@ class AppTorrentStatus {
           downloading == other.downloading &&
           isFetchingMetadata == other.isFetchingMetadata &&
           statusMessage == other.statusMessage &&
-          error == other.error;
+          error == other.error &&
+          totalBytes == other.totalBytes &&
+          downloadedBytes == other.downloadedBytes;
 }
 
 class FileInfo {
   final String path;
   final BigInt size;
 
-  const FileInfo({required this.path, required this.size});
+  const FileInfo({
+    required this.path,
+    required this.size,
+  });
 
   @override
   int get hashCode => path.hashCode ^ size.hashCode;

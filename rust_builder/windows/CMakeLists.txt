@@ -8,8 +8,9 @@ cmake_minimum_required(VERSION 3.14)
 set(PROJECT_NAME "rust_lib_torrent_app")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
-include("../cargokit/cmake/cargokit.cmake")
-apply_cargokit(${PROJECT_NAME} ../../../../../../rust rust_lib_torrent_app "")
+# include("../cargokit/cmake/cargokit.cmake")
+# apply_cargokit(${PROJECT_NAME} "../../rust" rust_lib_torrent_app "")
+set(${PROJECT_NAME}_cargokit_lib "C:/Users/TorrentsDR/rust/target/debug/rust_lib_torrent_app.dll")
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an

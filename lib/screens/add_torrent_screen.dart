@@ -99,11 +99,8 @@ class _AddTorrentScreenState extends State<AddTorrentScreen> {
       return;
     }
 
-    // Close bottom sheet and navigate to preview screen
-    Navigator.pop(context);
-    
-    // Navigate to preview screen
-    final selectedFiles = await Navigator.push<List<int>>(
+    // Navigate to preview screen FIRST (don't close bottom sheet yet)
+    final result = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
         builder: (context) => TorrentPreviewScreen(
@@ -114,8 +111,16 @@ class _AddTorrentScreenState extends State<AddTorrentScreen> {
     );
     
     // If user confirmed (selected files), start download
-    if (selectedFiles != null && mounted) {
-      context.read<TorrentBloc>().add(AddMagnetLink(magnet, selectedFiles));
+    if (result != null && mounted) {
+      // debugPrint('User confirmed download. Result: $result');
+      final selectedFiles = (result['indices'] as List).cast<int>();
+      final savePath = result['path'] as String?;
+      
+      // Dispatch the event to start download
+      context.read<TorrentBloc>().add(AddMagnetLink(magnet, selectedFiles, savePath));
+      
+      // NOW close the bottom sheet
+      Navigator.pop(context);
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -123,6 +128,9 @@ class _AddTorrentScreenState extends State<AddTorrentScreen> {
           backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
+    } else {
+      // User cancelled or no result - close bottom sheet
+      if (mounted) Navigator.pop(context);
     }
   }
 
