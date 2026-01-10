@@ -1,8 +1,8 @@
-# TorrentsDR - Universal Torrent Downloader
+# KujaPirates - Universal Torrent Downloader
 
 A beautiful, high-performance, cross-platform torrent download application built with **Flutter** and **Rust**.
 
-![TorrentsDR Banner](https://via.placeholder.com/1200x600.png?text=TorrentsDR+Preview)
+![KujaPirates Banner](https://via.placeholder.com/1200x600.png?text=KujaPirates+Preview)
 
 ## 🚀 Key Features
 
@@ -11,9 +11,7 @@ A beautiful, high-performance, cross-platform torrent download application built
 *   **Modern UI**: Sleek, dark-themed responsive interface designed with Flutter.
 *   **Magnet Link Support**: Seamlessly handle magnet links with automatic metadata fetching.
 *   **Torrent Files**: Open and download from `.torrent` files.
-*   **Real-time Stats**: View download/upload speeds, seeds/peers, and progress in real-time.
-*   **File Management**: Preview files within a torrent before downloading.
-*   **Background Service**: Continued downloading capability (platform dependent).
+*   **Universal Android**: Supports both modern (64-bit) and older (32-bit) devices.
 
 ## 🛠️ Architecture
 
@@ -26,8 +24,8 @@ This project uses `flutter_rust_bridge` to connect the performant Rust backend w
 
 | Platform | Status | Support |
 |----------|--------|---------|
-| **Windows** | ✅ Stable | Fully Supported |
-| **Android** | ✅ Stable | Fully Supported (arm64, v7a) |
+| **Windows** | ✅ Stable | Fully Supported (x64) |
+| **Android** | ✅ Stable | Universal (arm64, v7a, x86_64) |
 | **Linux** | ✅ Stable | Fully Supported |
 | **macOS** | 🚧 Beta | Experimental |
 | **iOS** | 🔜 Planned | Coming Soon |
@@ -46,8 +44,8 @@ This project uses `flutter_rust_bridge` to connect the performant Rust backend w
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/YourUsername/TorrentsDR.git
-    cd TorrentsDR
+    git clone https://github.com/YourUsername/KujaPirates.git
+    cd KujaPirates
     ```
 
 2.  **Install Flutter dependencies:**
@@ -82,7 +80,7 @@ The executable will be in `build/windows/runner/Release/`.
 ```bash
 flutter build apk --release
 ```
-The APK will be in `build/app/outputs/flutter-apk/`.
+The Universal APK is located in `releases/KujaPirates.apk`.
 
 ## 🤝 Contributing
 

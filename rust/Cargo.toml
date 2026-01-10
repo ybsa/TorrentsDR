@@ -17,6 +17,9 @@ hex = "0.4"
 sha1 = "0.10"
 rand = "0.8"
 bytes = "1.5"
+# OpenSSL vendored for Android cross-compilation
+[target.'cfg(target_os = "android")'.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
 # ureq removed as we use librqbit's internal networking
 
 

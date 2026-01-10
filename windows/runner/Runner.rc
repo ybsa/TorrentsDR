@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "TorrentsDR" "\0"
-            VALUE "FileDescription", "TorrentsDR - Fast Torrent Client" "\0"
+            VALUE "CompanyName", "KujaPirates" "\0"
+            VALUE "FileDescription", "KujaPirates - Fast Torrent Client" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "TorrentsDR" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 TorrentsDR. All rights reserved." "\0"
-            VALUE "OriginalFilename", "torrent_app.exe" "\0"
-            VALUE "ProductName", "TorrentsDR" "\0"
+            VALUE "InternalName", "KujaPirates" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 KujaPirates. All rights reserved." "\0"
+            VALUE "OriginalFilename", "KujaPirates.exe" "\0"
+            VALUE "ProductName", "KujaPirates" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

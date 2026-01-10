@@ -47,10 +47,19 @@ android {
     defaultConfig {
         minSdkVersion 19
     }
+    
+    // Use prebuilt native libraries instead of cargokit
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['../../android/app/src/main/jniLibs']
+        }
+    }
 }
 
-apply from: "../cargokit/gradle/plugin.gradle"
-cargokit {
-    manifestDir = "../../rust"
-    libname = "rust_lib_torrent_app"
-}
+// DISABLED: cargokit (we use prebuilt libraries from WSL instead)
+// apply from: "../cargokit/gradle/plugin.gradle"
+// cargokit {
+//     manifestDir = "../../rust"
+//     libname = "rust_lib_torrent_app"
+// }
+

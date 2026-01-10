@@ -4,13 +4,13 @@ import '../src/rust/frb_generated.dart';
 /// Service for interacting with the Rust torrent core.
 /// This wraps the Flutter Rust Bridge generated code.
 class TorrentService {
-  static bool _initialized = false;
+  static Future<void>? _initFuture;
 
   /// Initialize the Rust library. Must be called before any other methods.
-  static Future<void> initialize() async {
-    if (_initialized) return;
-    await RustLib.init();
-    _initialized = true;
+  /// safe to call multiple times; returns the same Future.
+  static Future<void> initialize() {
+    _initFuture ??= RustLib.init();
+    return _initFuture!;
   }
 
   /// Test the Rust bridge connection

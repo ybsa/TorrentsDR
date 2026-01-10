@@ -30,3 +30,9 @@ downloads/
 build_log*.txt
 build_fail_log*.txt
 *.bat
+
+# Binaries
+*.apk
+releases/
+*.exe
+

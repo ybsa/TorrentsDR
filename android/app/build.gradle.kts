@@ -28,6 +28,14 @@ android {
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        ndk {
+            // Filter for architectures where we have the Rust library
+            // This prevents 64-bit phones from trying to run 32-bit code (which would crash)
+            abiFilters.add("arm64-v8a")
+            abiFilters.add("x86_64")
+            abiFilters.add("armeabi-v7a") // 32-bit support added
+        }
     }
 
     buildTypes {
